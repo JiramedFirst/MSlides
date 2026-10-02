@@ -12,7 +12,7 @@ from pptx import Presentation
 from pptx.oxml.ns import qn
 
 src, cfg_path, out = pathlib.Path(sys.argv[1]).expanduser(), pathlib.Path(sys.argv[2]).resolve(), pathlib.Path(sys.argv[3]).resolve()
-cfg = json.loads(cfg_path.read_text())
+cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
 t = cfg["template"]
 prs = Presentation(src)
 slides = list(prs.slides)
@@ -50,6 +50,6 @@ for r in refs:
     if "slide" in r:
         r["slide"] = new_no[r["slide"]]
 t["path"] = os.path.relpath(out, cfg_path.parent)
-cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=1) + "\n")
+cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 print(f"{src.stat().st_size / 1e6:.1f} MB → {out.stat().st_size / 1e6:.2f} MB ({len(keep_slides)} slide(s) kept); "
       f"manual.json template.path = {t['path']}")

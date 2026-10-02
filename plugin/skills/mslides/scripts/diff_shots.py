@@ -24,7 +24,7 @@ MOVE_PX, PIXEL_MIN, MARK_FRAC = 8, 50, 0.05
 
 ws = pathlib.Path(sys.argv[1]).expanduser()
 old_d, new_d = ws / "shots", ws / "shots-new"
-items = json.loads((ws / "manifest.json").read_text())
+items = json.loads((ws / "manifest.json").read_text(encoding="utf-8"))
 shots = list(dict.fromkeys(it["shot"] for it in items))
 
 
@@ -34,7 +34,7 @@ def verdict(name):
         return "missing", "no new shot"
     if not o.exists():
         return "new", "no accepted shot yet — review and --accept it"
-    om, nm = json.loads(o.read_text()), json.loads(n.read_text())
+    om, nm = json.loads(o.read_text(encoding="utf-8")), json.loads(n.read_text(encoding="utf-8"))
     if len(om["marks"]) != len(nm["marks"]):
         return "changed", f"marks {len(om['marks'])} → {len(nm['marks'])} (steps must be re-counted)"
     for i, (a, b) in enumerate(zip(om["marks"], nm["marks"]), 1):
@@ -100,7 +100,7 @@ rows.sort(key=lambda r: (order[r[0]], shots.index(r[1])))
 counts = {k: sum(1 for r in rows if r[0] == k) for k in order}
 report = [f"# Refresh report — {counts['broken']} broken · {counts['changed']} changed · {counts['new']} new · {counts['unchanged']} unchanged", "",
           "| verdict | shot | why |", "|---|---|---|"] + [f"| {v} | {n} | {w} |" for v, n, w in rows]
-(ws / "refresh-report.md").write_text("\n".join(report) + "\n")
+(ws / "refresh-report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
 print(report[0])
 for v, n, w in rows:
     if v != "unchanged":

@@ -13,7 +13,7 @@ Exit 1 when something is stale, so it can gate a rebuild.
 import json, os, pathlib, re, sys
 
 cfg_path = pathlib.Path(sys.argv[1]).expanduser().resolve()
-cfg, ws = json.loads(cfg_path.read_text()), cfg_path.parent
+cfg, ws = json.loads(cfg_path.read_text(encoding="utf-8")), cfg_path.parent
 if "--messages" in sys.argv:
     files = [a for a in sys.argv[sys.argv.index("--messages") + 1:] if not a.startswith("--")]
 else:
@@ -52,7 +52,7 @@ def icu(v):
     return "".join(out)
 
 
-catalogue = [icu(v) for m in msgs for v in values(json.loads(m.read_text()))]
+catalogue = [icu(v) for m in msgs for v in values(json.loads(m.read_text(encoding="utf-8")))]
 # The other direction: a slide may quote a message with its placeholders FILLED ("Sent DOC-9105 — now Waiting for review"
 # for "Sent {documentNo} — now {status}"). Templates with < 6 literal chars would match anything — skipped.
 templates = [re.compile(re.escape(v).replace(PH, ".+?")) for v in catalogue
@@ -86,7 +86,7 @@ QUOTED = re.compile(r"[“\"]([^”\"]{2,80})[”\"]")
 def texts():
     """Every slide string that can quote UI copy: task steps/tips, and the manual.json intro/reference tables,
     bullet slides and closing — the fact-heavy tables quote status and button labels too."""
-    for it in json.loads((ws / cfg.get("manifest", "manifest.json")).read_text()):
+    for it in json.loads((ws / cfg.get("manifest", "manifest.json")).read_text(encoding="utf-8")):
         yield from ((it["shot"], f"step {i}", s) for i, s in enumerate(it["steps"], 1))
         yield it["shot"], "tip", it.get("tip", "")
     for sec in ("intro", "reference"):

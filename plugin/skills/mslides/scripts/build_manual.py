@@ -333,7 +333,7 @@ def task_slide(item):
         rich(tf.paragraphs[0], item["tip"], tip_size)
     # Screenshot (right column) + callouts. 16:9 box as wide as the area allows, shrunk if the area is too short.
     png = SHOTS / f"{item['shot']}.png"
-    meta = {**json.loads((SHOTS / f"{item['shot']}.json").read_text()), "name": item["shot"]}
+    meta = {**json.loads((SHOTS / f"{item['shot']}.json").read_text(encoding="utf-8")), "name": item["shot"]}
     with Image.open(png) as shot_png:
         cx0, cy0, cw, ch = crop_window(meta, img=shot_png)
     box_w = min(aw - 4.2, ah * 16 / 9)

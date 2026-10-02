@@ -8,6 +8,8 @@ Deck order: cover · agenda · intro slides · per chapter (divider + one slide 
 All app wording lives in manual.json (schema: references/content.md); this file holds no app knowledge.
 """
 import json, pathlib, shutil, subprocess, sys
+# Windows consoles default to a legacy code page; the arrows in our messages would raise UnicodeEncodeError.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import build_manual as B
 import renderers as R
 
@@ -40,7 +42,7 @@ def build(cfg, ws, role, out_dir=None):
     chapters = cfg["chapters"] if role == "all" else [c for c in cfg["chapters"] if c["code"] == role]
     if not chapters:
         raise SystemExit(f"--role {role}: no chapter with that code in manual.json")
-    items = json.loads((ws / cfg.get("manifest", "manifest.json")).read_text())
+    items = json.loads((ws / cfg.get("manifest", "manifest.json")).read_text(encoding="utf-8"))
     # A task whose chapter is misspelled or was removed would silently vanish from every edition — refuse instead.
     unknown = sorted({it["chapter"] for it in items} - {c["code"] for c in cfg["chapters"]})
     if unknown:
@@ -77,7 +79,7 @@ def build(cfg, ws, role, out_dir=None):
             shown.append((cfg.get("more_topics", "and {n} more topics").format(n=len(tasks) - 6), ""))
         B.list_slide(c["name"], shown, f"{c['no']} {c['name']}")
         for it in chapter:
-            if len(it["steps"]) != len(json.loads((B.SHOTS / f"{it['shot']}.json").read_text())["marks"]):
+            if len(it["steps"]) != len(json.loads((B.SHOTS / f"{it['shot']}.json").read_text(encoding="utf-8"))["marks"]):
                 # Step N must point at box N. A mismatch ships a slide whose numbers lie — refuse, don't warn.
                 raise SystemExit(f"{it['shot']}: {len(it['steps'])} steps but a different number of marks")
             B.task_slide(it)
@@ -122,7 +124,7 @@ def publish(cfg, ws, staged):
     out, ver = ws / "out", str(cfg.get("version", ""))
     out.mkdir(exist_ok=True)
     mark = out / ".version"
-    old = mark.read_text().strip() if mark.exists() else ""
+    old = mark.read_text(encoding="utf-8").strip() if mark.exists() else ""
     has_decks = any(out.glob("*.pptx"))
     editions = lambda d: [f for ext in ("*.pptx", "*.pdf", "*.md") for f in d.glob(ext)]
     # A set built before `version` was introduced has an empty/missing marker: archive it as "unversioned" rather
@@ -148,12 +150,12 @@ def publish(cfg, ws, staged):
     for f in staged.iterdir():
         shutil.move(str(f), out / f.name)
     staged.rmdir()
-    mark.write_text(ver)
+    mark.write_text(ver, encoding="utf-8")
 
 
 if __name__ == "__main__":
     cfg_path = pathlib.Path(sys.argv[1]).expanduser().resolve()
-    cfg, ws = json.loads(cfg_path.read_text()), cfg_path.parent
+    cfg, ws = json.loads(cfg_path.read_text(encoding="utf-8")), cfg_path.parent
     codes = [c["code"] for c in cfg["chapters"]]
     names = edition_names(cfg, ["all"] + codes)
     # Two chapters with the same code or edition suffix write the same file — one role's edition would silently

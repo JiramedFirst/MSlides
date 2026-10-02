@@ -25,6 +25,6 @@ if __name__ == "__main__":
     (ws / "preview").mkdir(exist_ok=True)
     for name in sys.argv[2:]:
         im = Image.open(ws / "shots" / f"{name}.png").convert("RGB")
-        draw_marks(im, json.loads((ws / "shots" / f"{name}.json").read_text())["marks"])
+        draw_marks(im, json.loads((ws / "shots" / f"{name}.json").read_text(encoding="utf-8"))["marks"])
         im.save(ws / "preview" / f"{name}.png")
         print(ws / "preview" / f"{name}.png")

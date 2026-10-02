@@ -32,7 +32,7 @@ pw_ok = subprocess.run(["node", "-e", "require.resolve('playwright')"], cwd=ws, 
 
 def install_playwright():
     if not (ws / "package.json").exists():  # npm would otherwise walk up and install into a parent project
-        (ws / "package.json").write_text('{ "private": true }\n')
+        (ws / "package.json").write_text('{ "private": true }\n', encoding="utf-8")
     run(npm, "i", "-D", "playwright", cwd=ws)
     run(npx, "playwright", "install", "chromium", cwd=ws)
 

@@ -39,7 +39,7 @@ def shot_image(shots, name, out_dir):
     img_dir = out_dir / "md-images"
     img_dir.mkdir(parents=True, exist_ok=True)
     dst = img_dir / f"{name}.png"
-    meta = {**json.loads((shots / f"{name}.json").read_text()), "name": name}
+    meta = {**json.loads((shots / f"{name}.json").read_text(encoding="utf-8")), "name": name}
     with Image.open(shots / f"{name}.png") as im:
         im = im.convert("RGB")
         x, y, w, h = B.crop_window(meta, img=im)
@@ -49,7 +49,7 @@ def shot_image(shots, name, out_dir):
 
 def export(cfg, ws, role, out_dir):
     chapters = cfg["chapters"] if role == "all" else [c for c in cfg["chapters"] if c["code"] == role]
-    items = json.loads((ws / cfg.get("manifest", "manifest.json")).read_text())
+    items = json.loads((ws / cfg.get("manifest", "manifest.json")).read_text(encoding="utf-8"))
     shots = ws / cfg.get("shots", "shots")
     t = cfg["template"]
     tip_label = t.get("tip_label", cfg.get("tip_label", "Tip: ")).rstrip(": ")
@@ -77,7 +77,7 @@ def export(cfg, ws, role, out_dir):
 
 if __name__ == "__main__":
     cfg_path = pathlib.Path(sys.argv[1]).expanduser().resolve()
-    cfg, ws = json.loads(cfg_path.read_text()), cfg_path.parent
+    cfg, ws = json.loads(cfg_path.read_text(encoding="utf-8")), cfg_path.parent
     roles = ["all"] + [c["code"] for c in cfg["chapters"]] if "--all" in sys.argv else [arg("--role", "all")]
     out_dir = pathlib.Path(arg("--out-dir", ws / "out"))
     out_dir.mkdir(parents=True, exist_ok=True)

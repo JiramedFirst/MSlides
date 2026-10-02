@@ -7,6 +7,8 @@ build every edition (PDF + Markdown), build once more on the dark template, and 
 Pure Python so the same file runs on macOS, Linux and Windows (CI runs both).
 """
 import http.server, json, os, pathlib, shutil, socket, subprocess, sys, tempfile, threading, urllib.request
+# Windows consoles default to a legacy code page; the arrows in our messages would raise UnicodeEncodeError.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 sys.stdout.reconfigure(line_buffering=True)  # keep our "==" headings in order with the children's output
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -49,13 +51,13 @@ try:
     print("== checks")
     sys.path.insert(0, str(TMP / "plugin/skills/mslides/scripts"))
     from pptx import Presentation
-    cfg = json.loads((WS / "manual.json").read_text())
-    items = json.loads((WS / "manifest.json").read_text())
+    cfg = json.loads((WS / "manual.json").read_text(encoding="utf-8"))
+    items = json.loads((WS / "manifest.json").read_text(encoding="utf-8"))
     out = WS / "out"
     deck = out / f"{cfg['out_name']}-ALL.pptx"
     assert deck.exists(), f"missing {deck}"
     for it in items:  # step N = box N
-        marks = json.loads((WS / "shots" / f"{it['shot']}.json").read_text())["marks"]
+        marks = json.loads((WS / "shots" / f"{it['shot']}.json").read_text(encoding="utf-8"))["marks"]
         assert len(it["steps"]) == len(marks), f"{it['shot']}: {len(it['steps'])} steps vs {len(marks)} marks"
     # cover + TOC + intro + (divider + tasks) per chapter + reference + closing
     want = 2 + len(cfg.get("intro", [])) + sum(1 + sum(it["chapter"] == c["code"] for it in items) for c in cfg["chapters"]) \
@@ -79,7 +81,7 @@ try:
     print("== dark template")
     import build_manual as B
     dark = dict(cfg, template={**cfg["template"], "path": "../../plugin/skills/mslides/templates/dark.pptx", "colors": B.DARK_COLORS})
-    (WS / "manual-dark.json").write_text(json.dumps(dark))
+    (WS / "manual-dark.json").write_text(json.dumps(dark), encoding="utf-8")
     run(PY, S / "scripts/manual.py", WS / "manual-dark.json", "--role", "all", "--out-dir", TMP / "dark")
     got_dark = len(Presentation(TMP / "dark" / f"{cfg['out_name']}-ALL.pptx").slides)
     assert got_dark == want, f"dark deck: {got_dark} slides, expected {want}"
