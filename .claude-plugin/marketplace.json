@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "mslides",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./plugin",
       "description": "Build, edit by chat and refresh user-manual slide decks for any web app: real screenshots, numbered callouts (step N = box N), one edition per role, PPTX + PDF.",
       "homepage": "https://github.com/JiramedFirst/MSlides",

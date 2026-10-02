@@ -251,8 +251,13 @@ def crop_window(meta, min_frac=0.45, pad=60, img=None):
         if y + h < H - 1: n += line((x + i, y + h) for i in range(0, int(w), 2))
         return n
 
-    best = (round(edge_ink(cx, cy, cw, ch), 2), cw, cx, cy, cw, ch)
-    for grow in (1.0, 1.06, 1.12, 1.2, 1.3):
+    # Zooming out is a cost, not a free escape: an edge on the image border reads as "no ink", so an unpenalised
+    # search on a dense full-width screen just picks the whole screen and the UI text shrinks (most slides of a
+    # real 93-slide manual did). Each 1% of extra width costs as much as a 1.5% edge crossing, and growth is capped at 12%.
+    # Ties go to the least movement — ordering ties by coordinate nudged 40 calm crops up-left for nothing.
+    base = edge_ink(cx, cy, cw, ch)
+    best = (round(base, 2), 0.0, cx, cy, cw, ch)
+    for grow in (1.0, 1.04, 1.08, 1.12):
         w2 = min(cw * grow, W, H * R)
         h2 = w2 / R
         for fx in (-0.06, -0.03, 0, 0.03, 0.06):
@@ -260,8 +265,11 @@ def crop_window(meta, min_frac=0.45, pad=60, img=None):
                 x2 = min(max(cx + (cw - w2) / 2 + fx * w2, 0), W - w2)
                 y2 = min(max(cy + (ch - h2) / 2 + fy * h2, 0), H - h2)
                 if holds(x2, y2, w2, h2):
-                    best = min(best, (round(edge_ink(x2, y2, w2, h2), 2), w2, x2, y2, w2, h2))
-    return best[2:]
+                    moved = abs(x2 - cx) / cw + abs(y2 - cy) / ch + (w2 / cw - 1)
+                    best = min(best, (round(edge_ink(x2, y2, w2, h2) + 1.5 * (w2 / cw - 1), 2), moved, x2, y2, w2, h2))
+    # Move only to clear a clearly visible cut (~12% of one edge in ink). Ink cannot tell a heading from a table
+    # row, so a smaller "gain" traded a page title or card labels for a calmer edge (3 slides in a real manual's QA).
+    return best[2:] if base - best[0] >= 0.12 else (cx, cy, cw, ch)
 
 
 def task_slide(item):

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-10-02
+
+- Crop snapping no longer zooms out or drifts on dense screens: growth is penalised and capped at 12%, ties keep the
+  original window, and a window moves only when that clears a clearly visible cut. Measured on a real 93-slide
+  manual: 7 crops move (all better or equal in visual QA) instead of 84.
+
 ## 1.0.0 — 2026-10-02
 
 First stable release, after a clean-room trial: a fresh Claude Code session with only the installed plugin built a
