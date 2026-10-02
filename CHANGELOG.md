@@ -16,6 +16,8 @@
   tables, steps, tips and each shot cropped like its slide with the numbered boxes drawn (`out/md-images/`).
 - CI: `.github/workflows/smoke.yml` runs the smoke test and the crop test on Ubuntu (with LibreOffice, so PDF
   export is exercised) and Windows.
+- All text files are read and written as UTF-8 explicitly (Windows defaulted to cp1252 and failed on a manifest).
+  Both CI lanes are green: Ubuntu renders real PDFs through LibreOffice; Windows captures and builds the demo.
 
 ## 1.0.2 — 2026-10-02
 
