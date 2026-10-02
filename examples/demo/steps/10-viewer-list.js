@@ -2,7 +2,7 @@
 const p = P.viewer ??= await session('viewer');
 await p.getByRole('table').waitFor();
 await shot(p, 'viewer-01-list', [
-  p.getByRole('navigation').getByRole('link', { name: 'Items' }),
+  p.locator('header.bar'),  // the whole top bar, so the crop keeps the app name instead of slicing it
   p.locator('.toolbar'),
   p.getByRole('table'),
 ]);

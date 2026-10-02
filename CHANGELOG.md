@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2 — 2026-10-02
+
+- Crop snapping never moves the top edge down (page titles live there) and keeps 12 px around every mark; the
+  move threshold drops to 4% of an edge so cut headings get fixed. QA on a real 93-slide manual: 22 crops move,
+  none worse.
+- Demo: the first Viewer step marks the whole top bar, so the crop keeps the app name; shots re-captured.
+- README: slide images from the demo build and a short "How it works".
+
 ## 1.0.1 — 2026-10-02
 
 - Crop snapping no longer zooms out or drifts on dense screens: growth is penalised and capped at 12%, ties keep the

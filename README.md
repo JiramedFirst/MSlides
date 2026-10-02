@@ -10,6 +10,15 @@ the app with Playwright to capture each screen, builds the deck, and runs a visu
 until the slides are right. Later it can **refresh** the manual after the UI changes (replay the capture, diff the
 pictures, flag button labels that no longer exist) or **edit it by chat** ("change step 2 on slide editor-02").
 
+![Two task slides from the demo manual: numbered steps on the left, a cropped screenshot with matching numbered boxes on the right](docs/images/hero.png)
+
+## How it works
+
+1. **Plan from the code** — read routes, i18n files and validation rules to list each role's tasks and the exact UI wording.
+2. **Capture** — drive the app with Playwright, one replayable step script per screen; each `shot()` records the boxes.
+3. **Build** — one native, editable PowerPoint deck per role plus a combined one, exported to PDF.
+4. **Visual QA** — a fresh reviewer checks the rendered pages; the loop repeats until it says ship.
+
 ## Example output
 
 The repository ships a demo: a tiny static inventory app (`examples/demo-app/`) and the manual captured from it
@@ -25,6 +34,10 @@ The repository ships a demo: a tiny static inventory app (`examples/demo-app/`) 
 Each task slide has numbered steps on the left, a screenshot cropped to the relevant area on the right with an
 outline box and a numbered badge per step, and a tip at the bottom. Every element is a native PowerPoint shape,
 so the deck stays fully editable.
+
+| A task slide | A form with four steps | A reference table |
+|---|---|---|
+| ![Viewer task slide](docs/images/viewer-task.png) | ![Editor form slide](docs/images/editor-form.png) | ![Reference table slide](docs/images/reference-table.png) |
 
 ## Install
 

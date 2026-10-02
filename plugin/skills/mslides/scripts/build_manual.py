@@ -264,12 +264,14 @@ def crop_window(meta, min_frac=0.45, pad=60, img=None):
             for fy in (-0.06, -0.03, 0, 0.03, 0.06):
                 x2 = min(max(cx + (cw - w2) / 2 + fx * w2, 0), W - w2)
                 y2 = min(max(cy + (ch - h2) / 2 + fy * h2, 0), H - h2)
-                if holds(x2, y2, w2, h2):
+                # A moved window keeps 12 px around every mark (QA saw boxes 3 px from the edge) and never moves
+                # its top edge down: page titles live at the top, and shifting down dropped them (3 slides of a real manual).
+                if holds(x2 + 12, y2 + 12, w2 - 24, h2 - 24) and y2 <= cy + 0.5:
                     moved = abs(x2 - cx) / cw + abs(y2 - cy) / ch + (w2 / cw - 1)
                     best = min(best, (round(edge_ink(x2, y2, w2, h2) + 1.5 * (w2 / cw - 1), 2), moved, x2, y2, w2, h2))
-    # Move only to clear a clearly visible cut (~12% of one edge in ink). Ink cannot tell a heading from a table
-    # row, so a smaller "gain" traded a page title or card labels for a calmer edge (3 slides in a real manual's QA).
-    return best[2:] if base - best[0] >= 0.12 else (cx, cy, cw, ch)
+    # Move only for a real gain (≥4% of one edge in ink): ink cannot tell a heading from a table row, so noise-level
+    # gains just trade one partly-cut thing for another. QA on a real 93-slide manual: 13 better, 9 same, 1 borderline.
+    return best[2:] if base - best[0] >= 0.04 else (cx, cy, cw, ch)
 
 
 def task_slide(item):
