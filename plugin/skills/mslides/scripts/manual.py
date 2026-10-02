@@ -2,13 +2,14 @@
 
   python manual.py <workspace>/manual.json                 # combined edition only
   python manual.py <workspace>/manual.json --role viewer   # one role's edition
-  python manual.py <workspace>/manual.json --all [--pdf]   # combined + one per chapter, optional PDF export
+  python manual.py <workspace>/manual.json --all [--pdf] [--md]   # combined + one per chapter, optional PDF + Markdown
 
 Deck order: cover · agenda · intro slides · per chapter (divider + one slide per manifest item) · reference · closing.
 All app wording lives in manual.json (schema: references/content.md); this file holds no app knowledge.
 """
-import json, pathlib, platform, shutil, subprocess, sys
+import json, pathlib, shutil, subprocess, sys
 import build_manual as B
+import renderers as R
 
 HERE = pathlib.Path(__file__).parent
 
@@ -91,18 +92,27 @@ def build(cfg, ws, role, out_dir=None):
 
 
 def render_pdf(pptx):
-    """Keynote on macOS (reads .pptx directly), else LibreOffice. Keynote wedged (-609/-1708)? Quit it from its menu."""
+    """Keynote on macOS (reads .pptx directly), PowerPoint via COM on Windows, else LibreOffice anywhere.
+    Keynote wedged (-609/-1708)? Quit it from its menu."""
     pdf = pptx.with_suffix(".pdf")
     pdf.unlink(missing_ok=True)
-    if platform.system() == "Darwin" and pathlib.Path("/Applications/Keynote.app").exists():
+    if R.has_keynote():
         subprocess.run(["osascript", str(HERE / "render.applescript"), str(pptx.resolve()), str(pdf.resolve()), "pdf"], check=True)
-    elif shutil.which("soffice"):
-        subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", str(pptx.parent), str(pptx)], check=True)
+    elif R.has_powerpoint():
+        subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(HERE / "render.ps1"),
+                        str(pptx.resolve()), str(pdf.resolve()), "pdf"], check=True)
+    elif R.find_soffice():
+        subprocess.run([R.find_soffice(), "--headless", "--convert-to", "pdf", "--outdir", str(pptx.parent), str(pptx)], check=True)
     else:
-        print("no PDF renderer (Keynote or LibreOffice soffice) — PPTX only", file=sys.stderr)
+        print("no PDF renderer (Keynote, PowerPoint or LibreOffice soffice) — PPTX only", file=sys.stderr)
         return None
     print("pdf", pdf)
     return pdf
+
+
+def export_md(cfg, ws, role, out_dir):
+    import export_md as M  # lazy: export_md imports for_role/edition_names from this module
+    return M.export(cfg, ws, role, out_dir)
 
 
 def publish(cfg, ws, staged):
@@ -114,24 +124,27 @@ def publish(cfg, ws, staged):
     mark = out / ".version"
     old = mark.read_text().strip() if mark.exists() else ""
     has_decks = any(out.glob("*.pptx"))
+    editions = lambda d: [f for ext in ("*.pptx", "*.pdf", "*.md") for f in d.glob(ext)]
     # A set built before `version` was introduced has an empty/missing marker: archive it as "unversioned" rather
     # than letting the first versioned refresh overwrite it.
     if has_decks and old != ver:
         dst = out / "archive" / (f"v{old}" if old else "unversioned")
         dst.mkdir(parents=True, exist_ok=True)
-        for f in list(out.glob("*.pptx")) + list(out.glob("*.pdf")):
+        for f in editions(out) + [p for p in [out / "md-images"] if p.is_dir()]:  # images travel with their .md
+            shutil.rmtree(dst / f.name, ignore_errors=True)
             shutil.move(str(f), dst / f.name)
         print("archived previous decks →", dst)
     # A deck at the top of out/ that this build did not produce belongs to a removed/renamed chapter: move it aside
     # so out/ holds exactly the current editions, whatever the version.
     current = {f.name for f in staged.iterdir()}
-    stale = [f for f in list(out.glob("*.pptx")) + list(out.glob("*.pdf")) if f.name not in current]
+    stale = [f for f in editions(out) if f.name not in current]
     if stale:
         gone = out / "archive" / "removed"
         gone.mkdir(parents=True, exist_ok=True)
         for f in stale:
             shutil.move(str(f), gone / f.name)
         print("moved editions no longer in manual.json →", gone)
+    shutil.rmtree(out / "md-images", ignore_errors=True)  # else move() nests the new folder inside the old one
     for f in staged.iterdir():
         shutil.move(str(f), out / f.name)
     staged.rmdir()
@@ -155,7 +168,7 @@ if __name__ == "__main__":
         staged = ws / "out" / ".staging"
         shutil.rmtree(staged, ignore_errors=True)
         staged.mkdir(parents=True)
-        extra = [a for a in ("--draft",) if a in sys.argv]
+        extra = [a for a in ("--draft", "--md") if a in sys.argv]  # each child edition writes its own .md into staging
         for r in roles:  # the first failing edition aborts before anything reaches out/
             if subprocess.run([sys.executable, __file__, str(cfg_path), "--role", r, "--out-dir", str(staged), *extra]).returncode:
                 raise SystemExit(f"edition {r!r} failed — out/ left unchanged (partial build in {staged})")
@@ -176,3 +189,5 @@ if __name__ == "__main__":
         out = build(cfg, ws, roles[0], pathlib.Path(od) if od else None)
         if "--pdf" in sys.argv:
             render_pdf(out)
+        if "--md" in sys.argv:
+            export_md(cfg, ws, roles[0], out.parent)

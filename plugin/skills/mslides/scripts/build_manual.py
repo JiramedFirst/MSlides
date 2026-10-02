@@ -25,6 +25,11 @@ DEFAULT_COLORS = {
     "accent": "E5484D", "on_accent": "FFFFFF", "text": "1F2328", "muted": "4A4F57",
     "tip_fill": "FDECEC", "table_head": "E5484D", "table_row": "F4F5F7", "table_ink": "1F2328", "pic_line": "C8CCD2",
 }
+# The dark counterpart (templates/dark.pptx, background 1B1F24): inspect_template.py --suggest emits these for a
+# dark theme, and references/template.md shows the same block — keep the three in step.
+DARK_COLORS = {
+    "text": "E8EAED", "muted": "B0B6BE", "tip_fill": "2A3038", "table_row": "262B32", "table_ink": "E8EAED", "pic_line": "5A6068",
+}
 # Content area [x, y, w, h] in inches: everything below the title and above the footer/logo.
 # Measured on a 13.33" x 7.5" template: steps start at 2.0", tip slot ends at 6.5", footer/logo at ~6.8".
 DEFAULT_AREA = [0.35, 1.95, 12.65, 4.8]

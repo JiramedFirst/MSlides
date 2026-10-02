@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 — 2026-10-02
+
+- **Windows support.** `manual.py --pdf` renders through PowerPoint (`scripts/render.ps1`, COM) on Windows and
+  through LibreOffice anywhere it is found (`MSLIDES_SOFFICE`, PATH, or the stock install folders). The smoke test
+  is now `tests/smoke.py` (pure Python; `smoke.sh` removed). Docs carry the PowerShell forms. ⚠️ The PowerPoint
+  COM renderer is written to the documented API but untested until the first real Windows machine with Office.
+- **`scripts/setup.py <workspace>`** — one idempotent command for the venv + requirements, Playwright + chromium
+  in the workspace, and a line naming the PDF renderer found.
+- **Dark template** `templates/dark.pptx` (`make_plain_template.py --theme dark`), with its worked config in
+  `references/template.md` and `build_manual.DARK_COLORS`.
+- **`inspect_template.py --suggest`** prints a ready-to-paste `"template"` block: layouts by placeholder type,
+  the content area measured from the title placeholder, dark colours for a dark theme.
+- **Markdown export**: `manual.py --md` (and `scripts/export_md.py`) writes one `.md` per edition with the
+  tables, steps, tips and each shot cropped like its slide with the numbered boxes drawn (`out/md-images/`).
+- CI: `.github/workflows/smoke.yml` runs the smoke test and the crop test on Ubuntu (with LibreOffice, so PDF
+  export is exercised) and Windows.
+
 ## 1.0.2 — 2026-10-02
 
 - Crop snapping never moves the top edge down (page titles live there) and keeps 12 px around every mark; the

@@ -1,0 +1,44 @@
+name: smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30   # LibreOffice's first conversion on a cold runner takes a while
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r plugin/skills/mslides/requirements.txt
+      # Playwright in a temp dir, pointed at by NODE_PATH — the same way a user reuses an existing install.
+      - run: npm i playwright
+        working-directory: ${{ runner.temp }}
+      - if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+        working-directory: ${{ runner.temp }}
+      - if: runner.os == 'Windows'
+        run: npx playwright install chromium
+        working-directory: ${{ runner.temp }}
+      # LibreOffice so the Ubuntu lane exercises --pdf (smoke.py asserts the PDFs once a renderer is found).
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libreoffice-impress fonts-liberation
+      - run: python tests/test_crop.py
+      - if: runner.os == 'Linux'
+        run: NODE_PATH="$RUNNER_TEMP/node_modules" python tests/smoke.py
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:NODE_PATH = Join-Path $env:RUNNER_TEMP "node_modules"
+          python tests/smoke.py

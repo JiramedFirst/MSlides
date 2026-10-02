@@ -24,6 +24,7 @@ environment, with test accounts and sample data. Output lands in the workspace (
    export MANUAL_PW_VIEWER=…  MANUAL_PW_EDITOR=…     # one per role key (uppercased, non-alnum → _)
    export MANUAL_PW=…                                # or one shared fallback
    ```
+   PowerShell: `$env:MANUAL_PW_VIEWER='…'`, `$env:MANUAL_PW='…'`.
    Ask the user to set them in their own shell. Never type, echo, print or paste a password into the chat, a file
    or a command line that ends up in shell history.
 
@@ -57,6 +58,9 @@ MANUAL_CONFIG=<ws>/manual.json node $S/scripts/repl.mjs          # 127.0.0.1:955
 curl -s -H "x-repl-token: $(cat <ws>/.repl-token)" --data-binary @<ws>/steps/00-lib.js localhost:9555   # helpers
 curl -s -H "x-repl-token: $(cat <ws>/.repl-token)" --data-binary @<ws>/steps/20-edit.js localhost:9555  # one step
 ```
+PowerShell: `$env:MANUAL_CONFIG="<ws>\manual.json"; node $S\scripts\repl.mjs`, then
+`curl.exe -s -H "x-repl-token: $(Get-Content <ws>\.repl-token)" --data-binary "@<ws>\steps\20-edit.js" localhost:9555`
+(`curl.exe`, not the `curl` alias of `Invoke-WebRequest`).
 
 Each body runs as an async function with `{P, session, shot, aria, cap, slide}`. `P` persists across calls.
 Run `return await aria(p)` first and build locators from the role/name tree it prints. The token file is 0600

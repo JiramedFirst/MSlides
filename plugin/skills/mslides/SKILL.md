@@ -31,7 +31,8 @@ screenshots, replayable capture steps and the tiny app it was captured from — 
 ## Workflow
 
 Set two variables once per shell: `S=<this skill's directory>` (the folder holding this SKILL.md) and
-`WS=<workspace>`; `PY=$WS/venv/bin/python`.
+`WS=<workspace>`; `PY` is the workspace venv's interpreter — `$WS/venv/bin/python` on macOS/Linux,
+`$WS\venv\Scripts\python.exe` on Windows (PowerShell: `$S`, `$WS`, `$PY` work the same way).
 
 ### 1. Ask (one round)
 Ask what you cannot read from the code: which **app / area**, which **roles/chapters** (one edition per role?),
@@ -48,14 +49,17 @@ accounts. Skip anything the user already said. Ask them to export `MANUAL_PW_<RO
 <ws>/out/          built editions
 <ws>/PROGRESS.md   resume notes: chapter status, MANUAL-… records and their state, data tweaks
 ```
-Python deps go in a venv inside the workspace: `python3 -m venv $WS/venv && $WS/venv/bin/pip install -r $S/requirements.txt`.
-Playwright for the capture: `cd $WS && npm i -D playwright && npx playwright install chromium` (or reuse the app's
-own install via `"repo"` in manual.json, or `NODE_PATH`).
+`python3 $S/scripts/setup.py $WS` does the tooling in one go (idempotent): the venv with `requirements.txt`,
+Playwright + chromium in the workspace unless node already resolves it (the app's own install via `"repo"` in
+manual.json, or `NODE_PATH`), and it names the PDF renderer it found. By hand instead:
+`python3 -m venv $WS/venv && $PY -m pip install -r $S/requirements.txt && cd $WS && npm i -D playwright && npx playwright install chromium`.
 
 ### 3. Template → `manual.json` "template"
-Run `$PY $S/scripts/inspect_template.py <template.pptx> --render $WS/tpl` and look at the rendered pages.
-Pick cover/divider/content layouts, the content `area`, colours (dark template ⇒ light text), fonts
-(`script_font: "Tahoma"` for Thai) and `tip_label`. Details and worked configs: **references/template.md**.
+Run `$PY $S/scripts/inspect_template.py <template.pptx> --suggest --render $WS/tpl`: `--suggest` prints a
+`"template"` block to start from (layouts by placeholder type, measured `area`, dark colours for a dark theme);
+look at the rendered pages and adjust cover/divider/content layouts, the content `area`, colours (dark template ⇒
+light text), fonts (`script_font: "Tahoma"` for Thai) and `tip_label`. A dark unbranded template ships too:
+`$S/templates/dark.pptx`. Details and worked configs: **references/template.md**.
 
 ### 4. Plan the manual from the code
 Read the app's routes, i18n message files, workflow transitions and permission checks; write the role list, the
@@ -74,10 +78,12 @@ Shrink shots before keeping them: `$PY $S/scripts/optimize_shots.py $WS/shots`.
 
 ### 6. Build
 ```
-$PY $S/scripts/manual.py $WS/manual.json --all --pdf
+$PY $S/scripts/manual.py $WS/manual.json --all --pdf --md
 ```
-→ `<ws>/out/<out_name>-ALL.pptx` + one per chapter edition, each with a PDF (Keynote on macOS, LibreOffice
-elsewhere; neither installed ⇒ PPTX only, say so). Editions build into `out/.staging/` and replace `out/` only when
+→ `<ws>/out/<out_name>-ALL.pptx` + one per chapter edition, each with a PDF (Keynote on macOS, PowerPoint on
+Windows, LibreOffice anywhere; none installed ⇒ PPTX only, say so) and, with `--md`, a Markdown edition
+(`<out_name>-<Edition>.md` + `out/md-images/`, the shots cropped like the slides with the boxes drawn — for a wiki
+or a repo). Editions build into `out/.staging/` and replace `out/` only when
 every edition and PDF succeeded. A chapter with no task slides fails the build — add `--draft` for a mid-capture
 preview. The build refuses overflowing steps/tips/tables and step/mark mismatches — fix the content, don't bypass.
 
@@ -120,14 +126,16 @@ capture) + `shots/` (accepted pictures). A refresh re-takes pictures and keeps w
 
 | Path | Use |
 |---|---|
-| `scripts/manual.py` | composer + edition loop + staging/publish + PDF export |
+| `scripts/setup.py` | one-shot workspace tooling: venv + requirements, Playwright + chromium, names the PDF renderer |
+| `scripts/manual.py` | composer + edition loop + staging/publish + PDF export (`--pdf`) + Markdown export (`--md`) |
+| `scripts/export_md.py` | Markdown edition: tables, steps, cropped shots with boxes, tips (`manual.py --md` calls it) |
 | `scripts/build_manual.py` | slide primitives: task slide (steps, tip slot, crop-to-marks, badge placer), tables, cover, dividers |
-| `scripts/inspect_template.py` | template facts (layouts, placeholders, colours) + rendered preview |
+| `scripts/inspect_template.py` | template facts (layouts, placeholders, colours), `--suggest` config block, `--render` preview |
 | `scripts/cap.mjs`, `scripts/repl.mjs` | Playwright session (configurable login, env-var passwords, identity check), `shot()` with marks, REPL that keeps pages alive |
 | `scripts/overlay.py` | preview a shot's marks before building |
 | `scripts/replay.mjs`, `scripts/diff_shots.py`, `scripts/check_copy.py` | refresh: replay steps → shots-new, per-slide diff + accept, stale-label check |
 | `scripts/optimize_shots.py`, `scripts/slim_template.py` | shrink shots and a large template before keeping them |
-| `scripts/make_plain_template.py`, `templates/plain.pptx` | the bundled unbranded 16:9 template and its generator |
-| `scripts/render.applescript` | Keynote PDF/PNG export on macOS |
+| `scripts/make_plain_template.py`, `templates/plain.pptx` · `dark.pptx` | the bundled unbranded 16:9 templates (light / dark) and their generator |
+| `scripts/render.applescript` · `render.ps1` · `renderers.py` | Keynote (macOS) / PowerPoint (Windows) PDF+PNG export; renderer detection incl. LibreOffice |
 | `references/capture.md` · `content.md` · `template.md` · `qa.md` | read at steps 5 · 4 · 3 · 7 |
 | `assets/example/` | `manual.json` + `manifest.json` of the demo manual — the reference implementation |

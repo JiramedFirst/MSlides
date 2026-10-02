@@ -12,9 +12,11 @@ needed several rounds; most blockers were invisible in the JSON and obvious on t
    - macOS renders through Keynote. Before the first export, `open -ga Keynote` and give it a few seconds.
 3. **Validate the package** if you have an OOXML validator (e.g. a pptx skill's `validate.py`). It catches broken
    XML and repair prompts, not visual faults: invisible text passes.
-4. **Render pages for review:**
+4. **Render pages for review** (one PNG per slide into `<ws>/qa<N>/`):
    ```bash
-   mkdir -p <ws>/qa<N> && pdftoppm -r 90 -png <ws>/out/<out_name>-ALL.pdf <ws>/qa<N>/s
+   osascript $S/scripts/render.applescript <ws>/out/<out_name>-ALL.pptx <ws>/qa<N>          # macOS: Keynote
+   powershell -NoProfile -ExecutionPolicy Bypass -File $S\scripts\render.ps1 <ws>\out\<out_name>-ALL.pptx <ws>\qa<N> png   # Windows: PowerPoint
+   mkdir -p <ws>/qa<N> && pdftoppm -r 90 -png <ws>/out/<out_name>-ALL.pdf <ws>/qa<N>/s       # elsewhere (poppler), from the PDF
    ```
    Review the ALL edition; role editions are subsets built by the same code.
 
@@ -111,8 +113,9 @@ The debug build overwrites that edition's output — rebuild it afterwards.
   "invalid file format" means the PPTX itself is the problem; anything else, dismiss it and rebuild.
 - Export fails with `-609`, `-1708` or an "unmerge id" error after an earlier crash: **quit Keynote from its
   menu** (Keynote › Quit), then rebuild. `pkill Keynote` does not clear it.
-- No Keynote (Linux/Windows): `manual.py --pdf` falls back to `soffice --headless`; with neither, it
-  writes the PPTX only and says so.
+- No Keynote: on Windows `manual.py --pdf` uses PowerPoint (`render.ps1`, COM) when it is installed, else
+  LibreOffice `soffice --headless` anywhere (`MSLIDES_SOFFICE=<path>` if it is not on PATH or in the stock
+  install folder); with none, it writes the PPTX only and says so.
 
 ## 7. Release
 

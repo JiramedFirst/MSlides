@@ -4,19 +4,33 @@ The builder knows nothing about any template. Everything lives in `manual.json` 
 built from the template file itself (masters, layouts, theme, logo art come along); the template's own sample
 slides are dropped at the end.
 
-No template of your own? Use the bundled `templates/plain.pptx` (white, 16:9, no branding — regenerate it with
-`scripts/make_plain_template.py`). Its config is the first worked example below.
+No template of your own? Use the bundled `templates/plain.pptx` (white, 16:9, no branding) or `templates/dark.pptx`
+(the same, dark background, light text) — regenerate them with `scripts/make_plain_template.py [--theme dark]`.
+Their configs are the first two worked examples below.
 
 ## 1. Inspect before you configure
 
 ```bash
-$PY $S/scripts/inspect_template.py <template.pptx> [--render <dir>]
+$PY $S/scripts/inspect_template.py <template.pptx> [--suggest] [--render <dir>]
 ```
 
 Prints slide size, theme colours per master, every master's layouts (placeholder idx/type/box in inches) and
 every sample slide (its layout, placeholders, shapes, text). `--render <dir>` also exports `<dir>/template.pdf`
-(Keynote on macOS, else LibreOffice) — **look at it**: the logo, rules and footer are often drawn on the layout,
-not as placeholders, and only a render shows where they sit.
+(Keynote on macOS, PowerPoint on Windows, else LibreOffice) — **look at it**: the logo, rules and footer are often
+drawn on the layout, not as placeholders, and only a render shows where they sit.
+
+`--suggest` prints a `"template"` block to paste into `manual.json` — a starting point measured from the file:
+
+- `cover` = the first layout with a centred title, or a title + subtitle; `divider` = title + one body;
+  `content` = title only. A layout name that repeats across masters is given as `{"slide": n}` when a sample
+  slide uses it, else as `{"layout", "master"}`.
+- `area` = `[title's left edge (to 0.1"), title bottom + 0.2", slide width − 2 × margin, down to 0.3" above the
+  lowest layout-drawn shape on the content layout, or 0.5" above the slide bottom]`, to 0.05".
+- `colors` only when the theme background (`lt1`) is dark — then the dark worked config below; a light theme
+  keeps the builder defaults.
+
+It cannot see art drawn on sample slides or a logo that is a placeholder, so build once with it and look
+(§10) before trusting `area`.
 
 ## 2. Pick cover / divider / content layouts
 
@@ -101,6 +115,26 @@ Hex without `#`. Keys and what they paint:
 
 Colour defaults apply. A relative `path` is resolved against the workspace.
 
+### Plain dark (bundled `templates/dark.pptx`, 13.33" × 7.5", background `1B1F24`)
+
+Same layouts as plain; only the colours change. `inspect_template.py --suggest` prints exactly this `colors`
+block for any template whose theme background is dark (`build_manual.DARK_COLORS`). `accent`, `on_accent` and
+`table_head` keep their defaults — red on the dark grey reads fine.
+
+```json
+"template": {
+  "path": "<skill dir>/templates/dark.pptx",
+  "cover":   { "layout": "Title Slide" },
+  "divider": { "layout": "Title and Content" },
+  "content": { "layout": "Title Only" },
+  "area": [0.6, 1.75, 12.1, 4.9],
+  "colors": {
+    "text": "E8EAED", "muted": "B0B6BE", "tip_fill": "2A3038",
+    "table_row": "262B32", "table_ink": "E8EAED", "pic_line": "5A6068"
+  }
+}
+```
+
 ### A dark branded template (13.33" × 7.5", logo art on the cover's left, footer on a sample slide)
 
 What `inspect_template.py` + the render typically show: a cover layout with full-bleed art, a separate
@@ -163,7 +197,7 @@ keeps only the layouts and sample slides `manual.json` refers to and rewrites `t
 
 ```bash
 $PY $S/scripts/manual.py <ws>/manual.json --role <code> --pdf
-pdftoppm -r 60 -png <ws>/out/<out_name>-<edition>.pdf <ws>/qa-tpl/s
+pdftoppm -r 60 -png <ws>/out/<out_name>-<edition>.pdf <ws>/qa-tpl/s      # or render.applescript / render.ps1 … png (qa.md §1)
 ```
 
 Look at cover, TOC, one divider, one task slide, one table slide. Adjust `area`, `title_box`, colours; rebuild.
