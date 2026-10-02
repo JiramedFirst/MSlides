@@ -5,6 +5,8 @@
 Claude Code plugin that makes user-manual slide decks for a web app. It captures each screen with Playwright, draws
 a numbered box for every step, and builds one editable PPTX (and PDF) per role.
 
+[![24-second demo: ask Claude, the screens get captured with numbered boxes, the deck opens](docs/images/demo.gif)](https://github.com/JiramedFirst/MSlides/releases/download/v1.1.0/MSlides-demo.mp4)
+
 ![Two task slides from the demo manual](docs/images/hero.png)
 
 ## Install
