@@ -109,6 +109,7 @@ plugin/skills/mslides/              the skill: SKILL.md, scripts/, references/, 
 examples/demo-app/                  tiny dependency-free app to capture from
 examples/demo/                      demo manual: manual.json, manifest.json, steps/, shots/
 tests/smoke.sh                      end-to-end smoke test
+tests/test_crop.py                  crop-edge regression check (run by smoke.sh)
 ```
 
 ## License

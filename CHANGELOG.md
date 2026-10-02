@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 — 2026-10-02
+
+First stable release, after a clean-room trial: a fresh Claude Code session with only the installed plugin built a
+two-role manual (PPTX + PDF) for the demo app from a plain-language request.
+
+- Screenshot crops no longer slice through UI text at their edges: the 16:9 window is grown/shifted slightly to
+  the candidate whose edges cross the least ink (`tests/test_crop.py`).
+- Contents slide shows each chapter number before its title instead of after it.
+
 ## 0.1.0 — 2026-10-02
 
 Initial release of MSlides.

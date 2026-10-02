@@ -57,4 +57,5 @@ for c in cfg["chapters"]:
 print(f"ok: {deck.name} has {got} slides; {len(items)} task slides, steps == marks on every one")
 EOF
 "$PY" "$S/scripts/check_copy.py" "$WS/manual.json"
+"$PY" "$ROOT/tests/test_crop.py"
 echo "SMOKE OK"

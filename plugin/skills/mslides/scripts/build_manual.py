@@ -157,7 +157,7 @@ def title_slide(title, subtitle, notes=""):
 
 
 def list_slide(title, items, notes=""):
-    """Agenda / chapter-divider: title + list of (text, accent-suffix)."""
+    """Agenda / chapter-divider: title + list of (text, accent number shown before it)."""
     s = new_slide("divider", notes)
     t, body = _ph(s, 0), _ph(s, 1)
     # No placeholder: reuse the content slides' title box, which is already known to clear the template's logo.
@@ -167,8 +167,9 @@ def list_slide(title, items, notes=""):
     tf = body.text_frame if body is not None else tbox(s, AREA[0], AREA[1], AREA[2], AREA[3])
     for i, (txt, n) in enumerate(items):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        run(p, txt + "  ", size=18, bold=True, **({} if body is not None else {"color": C["text"]}))
-        if n: run(p, n, size=18, bold=True, color=C["accent"])
+        # Number first ("1  Viewer"): a trailing accent number read as a stray page count in an outside QA run.
+        if n: run(p, n + "  ", size=18, bold=True, color=C["accent"])
+        run(p, txt, size=18, bold=True, **({} if body is not None else {"color": C["text"]}))
     return s
 
 
@@ -203,7 +204,7 @@ def bullets_slide(kicker, title, lines, notes=""):
     return s
 
 
-def crop_window(meta, min_frac=0.45, pad=60):
+def crop_window(meta, min_frac=0.45, pad=60, img=None):
     """Smallest 16:9 window (≥ min_frac of the screen width) holding every mark plus padding, clamped to the image.
     Always 16:9 whatever the capture viewport: task_slide puts it in a 16:9 box and maps callouts with ONE scale
     factor, so a 4:3 window would stretch the picture and misplace every box vertically."""
@@ -222,10 +223,45 @@ def crop_window(meta, min_frac=0.45, pad=60):
     cy = min(max((y0 + y1) / 2 - ch / 2, 0), H - ch)
     # A very wide viewport caps the 16:9 window at H*R, which can cut off a mark at the far side; a callout drawn
     # outside the picture would land on the step text. Fail so the shot gets retaken with closer marks.
-    for r in meta["marks"]:
-        if r["x"] < cx - 1 or r["x"] + r["w"] > cx + cw + 1 or r["y"] < cy - 1 or r["y"] + r["h"] > cy + ch + 1:
-            raise SystemExit(f"{meta.get('name', 'shot')}: marks span more than one 16:9 window — retake with marks closer together")
-    return cx, cy, cw, ch
+    def holds(x, y, w, h):
+        return all(r["x"] >= x - 1 and r["x"] + r["w"] <= x + w + 1 and r["y"] >= y - 1 and r["y"] + r["h"] <= y + h + 1
+                   for r in meta["marks"])
+
+    if not holds(cx, cy, cw, ch):
+        raise SystemExit(f"{meta.get('name', 'shot')}: marks span more than one 16:9 window — retake with marks closer together")
+    if img is None:
+        return cx, cy, cw, ch
+    # The window is placed from mark geometry alone, so its edges can slice through UI text ("Demo Inventory" cropped
+    # to "ntory", a heading cut in half — first outside QA run). Try slightly larger / shifted windows and keep the
+    # one whose edges cross the least ink; ties go to the tightest (most zoomed) window, so readability wins.
+    g = img.convert("L")
+    if g.size != (W, H):
+        g = g.resize((int(W), int(H)))
+    px = g.load()
+
+    def edge_ink(x, y, w, h):
+        def line(pts):
+            v = [px[min(int(a), W - 1), min(int(b), H - 1)] for a, b in pts]
+            bg = sorted(v)[len(v) // 2]
+            return sum(abs(p - bg) > 40 for p in v) / len(v)
+        n = 0.0
+        if x > 1: n += line((x, y + i) for i in range(0, int(h), 2))
+        if x + w < W - 1: n += line((x + w, y + i) for i in range(0, int(h), 2))
+        if y > 1: n += line((x + i, y) for i in range(0, int(w), 2))
+        if y + h < H - 1: n += line((x + i, y + h) for i in range(0, int(w), 2))
+        return n
+
+    best = (round(edge_ink(cx, cy, cw, ch), 2), cw, cx, cy, cw, ch)
+    for grow in (1.0, 1.06, 1.12, 1.2, 1.3):
+        w2 = min(cw * grow, W, H * R)
+        h2 = w2 / R
+        for fx in (-0.06, -0.03, 0, 0.03, 0.06):
+            for fy in (-0.06, -0.03, 0, 0.03, 0.06):
+                x2 = min(max(cx + (cw - w2) / 2 + fx * w2, 0), W - w2)
+                y2 = min(max(cy + (ch - h2) / 2 + fy * h2, 0), H - h2)
+                if holds(x2, y2, w2, h2):
+                    best = min(best, (round(edge_ink(x2, y2, w2, h2), 2), w2, x2, y2, w2, h2))
+    return best[2:]
 
 
 def task_slide(item):
@@ -281,7 +317,7 @@ def task_slide(item):
     # Screenshot (right column) + callouts. 16:9 box as wide as the area allows, shrunk if the area is too short.
     png = SHOTS / f"{item['shot']}.png"
     meta = {**json.loads((SHOTS / f"{item['shot']}.json").read_text()), "name": item["shot"]}
-    cx0, cy0, cw, ch = crop_window(meta)
+    cx0, cy0, cw, ch = crop_window(meta, img=Image.open(png))
     box_w = min(aw - 4.2, ah * 16 / 9)
     BOX_W, BOX_H = Inches(box_w), Inches(box_w * 9 / 16)
     pic = s.shapes.add_picture(str(png), Inches(ax + aw - box_w), Inches(ay), width=BOX_W, height=BOX_H)
