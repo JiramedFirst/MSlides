@@ -242,6 +242,8 @@ def crop_window(meta, min_frac=0.45, pad=60, img=None):
     def edge_ink(x, y, w, h):
         def line(pts):
             v = [px[min(int(a), W - 1), min(int(b), H - 1)] for a, b in pts]
+            if not v:
+                return 0.0
             bg = sorted(v)[len(v) // 2]
             return sum(abs(p - bg) > 40 for p in v) / len(v)
         n = 0.0
@@ -266,7 +268,7 @@ def crop_window(meta, min_frac=0.45, pad=60, img=None):
                 y2 = min(max(cy + (ch - h2) / 2 + fy * h2, 0), H - h2)
                 # A moved window keeps 12 px around every mark (QA saw boxes 3 px from the edge) and never moves
                 # its top edge down: page titles live at the top, and shifting down dropped them (3 slides of a real manual).
-                if holds(x2 + 12, y2 + 12, w2 - 24, h2 - 24) and y2 <= cy + 0.5:
+                if holds(x2 + 13, y2 + 13, w2 - 26, h2 - 26) and y2 <= cy + 0.5:
                     moved = abs(x2 - cx) / cw + abs(y2 - cy) / ch + (w2 / cw - 1)
                     best = min(best, (round(edge_ink(x2, y2, w2, h2) + 1.5 * (w2 / cw - 1), 2), moved, x2, y2, w2, h2))
     # Move only for a real gain (≥4% of one edge in ink): ink cannot tell a heading from a table row, so noise-level
@@ -327,7 +329,8 @@ def task_slide(item):
     # Screenshot (right column) + callouts. 16:9 box as wide as the area allows, shrunk if the area is too short.
     png = SHOTS / f"{item['shot']}.png"
     meta = {**json.loads((SHOTS / f"{item['shot']}.json").read_text()), "name": item["shot"]}
-    cx0, cy0, cw, ch = crop_window(meta, img=Image.open(png))
+    with Image.open(png) as shot_png:
+        cx0, cy0, cw, ch = crop_window(meta, img=shot_png)
     box_w = min(aw - 4.2, ah * 16 / 9)
     BOX_W, BOX_H = Inches(box_w), Inches(box_w * 9 / 16)
     pic = s.shapes.add_picture(str(png), Inches(ax + aw - box_w), Inches(ay), width=BOX_W, height=BOX_H)

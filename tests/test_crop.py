@@ -30,3 +30,11 @@ assert abs(sw / sh - 16 / 9) < 1e-6, "window lost its 16:9 ratio"
 m = meta["marks"][0]
 assert sx <= m["x"] and sy <= m["y"] and m["x"] + m["w"] <= sx + sw and m["y"] + m["h"] <= sy + sh, "mark left the window"
 print("crop snap ok:", [round(v) for v in (x, y, w, h)], "->", [round(v) for v in (sx, sy, sw, sh)])
+
+# The top edge never moves down, even when only a downward shift would clear the ink (a tall block straddling
+# the top edge, e.g. a page header): page titles live at the top, so the window keeps them.
+img2 = Image.new("RGB", (W, H), "white")
+ImageDraw.Draw(img2).rectangle([x + w / 2 - 300, y - 60, x + w / 2 + 300, y + 8], fill="black")
+tx, ty, tw, th = B.crop_window(meta, img=img2)
+assert ty <= y + 0.5, f"top edge moved down: {y:.0f} -> {ty:.0f}"
+print("top rule ok:", round(y), "->", round(ty))
