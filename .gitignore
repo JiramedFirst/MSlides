@@ -1,0 +1,11 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+out/
+shots-new/
+preview/
+refresh-report.md
+.repl-token
+.DS_Store

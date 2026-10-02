@@ -1,0 +1,10 @@
+{
+  "name": "mslides",
+  "version": "0.1.0",
+  "description": "MSlides — build, edit by chat and refresh step-by-step user-manual slide decks (editable PPTX + PDF) for any web app, from real Playwright screenshots with numbered callouts.",
+  "author": { "name": "Jiramed Jetawattana" },
+  "homepage": "https://github.com/JiramedFirst/MSlides",
+  "repository": "https://github.com/JiramedFirst/MSlides",
+  "license": "MIT",
+  "keywords": ["user-manual", "documentation", "pptx", "powerpoint", "slides", "playwright", "screenshots", "training", "onboarding", "thai"]
+}

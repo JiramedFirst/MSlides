@@ -1,0 +1,18 @@
+{
+  "app": { "name": "Demo Inventory", "loading": "Loading…", "signOut": "Sign out", "nav": { "items": "Items" } },
+  "login": { "title": "Sign in", "email": "Email", "password": "Password", "submit": "Sign in", "hint": "Any password works in this demo." },
+  "roles": { "viewer": "Viewer", "editor": "Editor" },
+  "list": {
+    "title": "Items", "search": "Search", "searchPlaceholder": "Search by name or category", "new": "New item",
+    "empty": "No items match your search.", "count": "{count, plural, one {# item} other {# items}}",
+    "columns": { "name": "Name", "category": "Category", "quantity": "Quantity", "status": "Status" },
+    "saved": "Saved “{name}”"
+  },
+  "form": {
+    "newTitle": "New item", "detailTitle": "Item details", "name": "Name", "category": "Category",
+    "quantity": "Quantity", "notes": "Notes", "save": "Save", "cancel": "Cancel", "back": "Back to items",
+    "readOnly": "Read only — ask an Editor to change this item.", "nameRequired": "Name is required."
+  },
+  "status": { "inStock": "In stock", "low": "Low stock", "out": "Out of stock" },
+  "categories": { "hardware": "Hardware", "software": "Software", "office": "Office" }
+}
