@@ -1,5 +1,7 @@
 # MSlides
 
+**English** · [ภาษาไทย](README.th.md)
+
 [![smoke](https://github.com/JiramedFirst/MSlides/actions/workflows/smoke.yml/badge.svg)](https://github.com/JiramedFirst/MSlides/actions/workflows/smoke.yml)
 
 Claude Code plugin that makes user-manual slide decks for a web app. It captures each screen with Playwright, draws
@@ -15,6 +17,8 @@ a numbered box for every step, and builds one editable PPTX (and PDF) per role.
 /plugin marketplace add JiramedFirst/MSlides
 /plugin install mslides@mslides
 ```
+
+Want a tutorial video instead of slides? See the sibling plugin [TVideo](https://github.com/JiramedFirst/TVideo).
 
 ## Use
 
