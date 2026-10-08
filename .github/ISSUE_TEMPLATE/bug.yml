@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in setup, capture, deck building or PDF export went wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Don't paste passwords or screenshots of confidential internal screens — a description or a frame from the demo app is enough.
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Where did it fail?
+      options:
+        - Install / setup.py
+        - Capture (Playwright, login, a screen or selector)
+        - Building the PPTX
+        - PDF export
+        - Markdown edition (--md)
+        - The deck looks wrong (box position, numbering, text, layout)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error output
+      description: The exact error text, or the slide that looks wrong.
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: MSlides, `python3 --version`, `node -v`, OS, PDF renderer (Keynote / PowerPoint / LibreOffice)
+      placeholder: MSlides 1.1.0 · Python 3.12 · Node 22 · macOS 15 · Keynote
+    validations:
+      required: true
