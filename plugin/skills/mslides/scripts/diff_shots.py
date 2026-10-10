@@ -13,6 +13,8 @@ Only the crop window the slide actually shows is compared (build_manual.crop_win
 badge outside the crop does not flag a slide whose visible part is identical.
 """
 import json, pathlib, shutil, sys
+# Windows consoles/pipes default to a legacy code page; the arrows in our messages would raise UnicodeEncodeError.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from PIL import Image, ImageChops
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from build_manual import crop_window

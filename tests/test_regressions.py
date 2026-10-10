@@ -64,7 +64,7 @@ def test_diff_shots_badge_only():
     meta = json.loads(path.read_text(encoding="utf-8"))
     meta["marks"][2]["badge"] = "left"  # picture and geometry identical: only the hint differs
     path.write_text(json.dumps(meta), encoding="utf-8")
-    diff = lambda *a: subprocess.run([sys.executable, str(SCRIPTS / "diff_shots.py"), str(ws), *a], capture_output=True, text=True)
+    diff = lambda *a: subprocess.run([sys.executable, str(SCRIPTS / "diff_shots.py"), str(ws), *a], capture_output=True, text=True, encoding="utf-8")
     r = diff()
     assert "changed   viewer-01-list" in r.stdout and "hints" in r.stdout, f"badge-only edit not reported:\n{r.stdout}{r.stderr}"
     assert "1 changed" in r.stdout and "5 unchanged" in r.stdout, f"other shots flagged:\n{r.stdout}"
