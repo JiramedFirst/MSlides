@@ -9,7 +9,7 @@ All template knowledge lives in manual.json → "template" (see references/templ
 template file, a layout, or a colour: a dark branded deck and a plain white one differ only in config.
 Call init(cfg, workspace) once, then the slide functions, then finish().
 """
-import copy, json, os, pathlib
+import copy, json, os, pathlib, sys
 from PIL import Image
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -281,6 +281,20 @@ def crop_window(meta, min_frac=0.45, pad=60, img=None):
     return best[2:] if base - best[0] >= 0.04 else (cx, cy, cw, ch)
 
 
+BADGE_HINTS = ("left", "right", "above", "below")
+# A callout box is drawn `pad` outside its mark with a 2.25pt stroke centred on the edge: a mark that touches the
+# screenshot frame would put the stroke on the slide background. Keep the whole box this far inside the picture.
+FRAME_INSET = 0.05  # inches: pad 0.03 + half the stroke (0.016) + a hair
+
+
+def _clamp_box(bx, by, bw, bh, left, top, width, height, inset):
+    """Shrink box (bx, by, bw, bh) so it lies inside the rectangle (left, top, width, height) inset on all sides.
+    Any unit, as long as all arguments share it. A box already inside is returned unchanged."""
+    x0, y0 = max(bx, left + inset), max(by, top + inset)
+    x1, y1 = min(bx + bw, left + width - inset), min(by + bh, top + height - inset)
+    return x0, y0, max(x1 - x0, 0), max(y1 - y0, 0)
+
+
 def task_slide(item):
     ax, ay, aw, ah = AREA
     s = new_slide("content", item.get("tip", ""))
@@ -352,7 +366,8 @@ def task_slide(item):
     for r in meta["marks"]:
         x, yy = pic.left + (r["x"] - cx0) * k, pic.top + (r["y"] - cy0) * k
         w, h = max(r["w"] * k, Inches(0.2)), max(r["h"] * k, Inches(0.16))
-        bx, by, bw, bh = x - pad, yy - pad, w + 2 * pad, h + 2 * pad
+        bx, by, bw, bh = _clamp_box(x - pad, yy - pad, w + 2 * pad, h + 2 * pad,
+                                    pic.left, pic.top, pic.width, pic.height, Inches(FRAME_INSET))
         box = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Emu(int(bx)), Emu(int(by)), Emu(int(bw)), Emu(int(bh)))
         box.fill.background(); box.line.color.rgb = C["accent"]; box.line.width = Pt(2.25)
         boxes.append((bx, by, bw, bh))
@@ -366,6 +381,16 @@ def task_slide(item):
         dx = max(bx - cx, 0, cx - (bx + bw)); dy = max(by - cy, 0, cy - (by + bh))
         return (dx * dx + dy * dy) ** 0.5
 
+    AMBIGUITY = Inches(0.05)
+
+    def rival(cx, cy, own):
+        """Index (0-based) of a box the badge at (cx, cy) is about as close to as to its own, else None.
+        Only a cost in hits(): when every candidate scores it, min() still picks one — so it is also reported."""
+        mine = dist(cx, cy, boxes[own])
+        near = [(dist(cx, cy, b), i) for i, b in enumerate(boxes) if i != own]
+        d, i = min(near, default=(None, None))
+        return i if d is not None and d < mine + AMBIGUITY else None
+
     def hits(cx, cy, own):
         r = D / 2
         n_hit = 0
@@ -378,7 +403,7 @@ def task_slide(item):
             d = dist(cx, cy, b)
             n_hit += d < r  # overlaps another box
             # About as close to a neighbour as to its own box → reads as the neighbour's number (seen in QA).
-            n_hit += d < mine + Inches(0.05)
+            n_hit += d < mine + AMBIGUITY
         n_hit += 10 * sum(1 for px, py in placed if abs(cx - px) < D and abs(cy - py) < D)
         r = D / 2
         inside = (pic.left + r <= cx <= pic.left + pic.width - r) and (pic.top + r <= cy <= pic.top + pic.height - r)
@@ -426,9 +451,16 @@ def task_slide(item):
             i = ink(*c)
             return (hits(*c, n - 1), round(i, 2), corners.index(c))
         hint = meta["marks"][n - 1].get("badge")  # per-mark override where ink can't tell text from chrome
-        if hint == "left":
-            corners = [sides[0]]
+        if hint:
+            if hint not in BADGE_HINTS:
+                raise SystemExit(f"{item['shot']}: mark {n}: unknown badge hint {hint!r} — use one of {', '.join(BADGE_HINTS)}")
+            above, below = (bx + bw / 2, by - D / 2 - gap), (bx + bw / 2, by + bh + D / 2 + gap)
+            corners = [{"left": sides[0], "right": sides[1], "above": above, "below": below}[hint]]
         cx, cy = min(corners, key=cost)
+        other = rival(cx, cy, n - 1)
+        if other is not None:
+            print(f"warning: {item['shot']}: badge {n} is about as close to box {other + 1} as to its own — "
+                  f"set \"badge\" on mark {n} to {'/'.join(BADGE_HINTS)}, or separate the boxes", file=sys.stderr)
         if os.environ.get("BADGE_DEBUG") == item["shot"]:
             print(n, [(corners.index(c), cost(c), round(ink(*c), 3)) for c in corners])
         cx = max(pic.left + D / 2, min(cx, pic.left + pic.width - D / 2))

@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.1.1 — unreleased
+
+Fixes from building two real Thai manuals (32 and 20 task slides, 5 and 15 QA rounds). Each has a regression test
+(`tests/test_regressions.py`, `tests/test_manifest.mjs`; the smoke test also checks the replay sync).
+
+- **`diff_shots.py`** compares every non-geometry field of a mark (`badge` …) and the shot's extra keys: a replay
+  whose only difference is a badge hint is `changed`, so `--accept-changed` no longer drops it.
+- **`replay.mjs` syncs `manifest.json`** from the steps' `slide()` calls after a full, successful run: wording is
+  upserted and the manifest is ordered like the step files (a slide captured out of order stays no longer out of
+  order). Changed slides are listed and the old file is kept as `manifest.json.bak`; entries no step produces stay
+  at the end with a warning. `--no-sync-manifest` restores the old pictures-only replay; `--only` upserts in place
+  and never reorders. ⚠️ A wording fix made only in `manifest.json` is reverted by the next full replay — change
+  the step too. The shared logic lives in `scripts/manifest.mjs` (`repl.mjs` uses it as well). The demo steps now
+  call `slide()`.
+- **Callout boxes touching the screenshot frame** are clamped 0.05" inside the picture (box pad + half the
+  stroke), so an outline no longer spills onto the slide background. In slide units rather than 6 px: 6 px is
+  only ~0.03" at full-width zoom, the same as the box padding.
+- **Badge hints** `right`, `above`, `below` join `left`; an unknown hint fails the build. When the chosen badge
+  spot is still about as close to a neighbouring box as to its own, the build warns with the slide and mark number.
+- **Keynote `-1712`** (screen locked or asleep) now stops with "Keynote cannot export while the screen is locked or
+  asleep"; the export runs with a 600 s AppleEvent timeout. ⚠️ The AppleScript change is untested on macOS.
+- **A build without `--pdf` / `--md`** keeps the existing PDFs / Markdown of editions that still exist (with a
+  warning that they may not match the new decks) instead of archiving them as "no longer in manual.json".
+- **`scripts/qa_render.py`** renders the QA pages from the PDF at 200 dpi (`pdftoppm`); `qa.md` uses it instead of
+  Keynote's fixed 960×540 PNG export.
+- Docs: `capture.md` notes that an open menu/modal `aria-hidden`s the rest of the page (use CSS/text locators), and
+  that badge hints belong in the step (`opts.badges`), not in a hand-edited shot JSON.
+
 ## 1.1.0 — 2026-10-02
 
 - **Windows support.** `manual.py --pdf` renders through PowerPoint (`scripts/render.ps1`, COM) on Windows and

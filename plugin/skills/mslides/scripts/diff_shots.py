@@ -6,7 +6,7 @@
 
 Verdicts:
   broken    — no new shot (its step failed or no longer produces it). --partial treats that as "not replayed".
-  changed   — mark count differs, a mark moved/resized > 8 px, > 5% of a mark box differs, or ≥ 50 px of the crop.
+  changed   — mark count differs, a mark hint (e.g. `badge`) differs, a mark moved/resized > 8 px, > 5% of a mark box differs, or ≥ 50 px of the crop.
               These slides need a look (wording may be stale too — run check_copy.py) and go to visual QA.
   unchanged — same marks, same picture where the slide shows it. Accepting is optional.
 Only the crop window the slide actually shows is compared (build_manual.crop_window), so a changed sidebar
@@ -41,6 +41,16 @@ def verdict(name):
         d = max(abs(a[k] - b[k]) for k in ("x", "y", "w", "h"))
         if d > MOVE_PX:
             return "changed", f"mark {i} moved/resized {d:.0f}px"
+    # Everything in the marks JSON except geometry is part of the slide (a `badge` hint moves a badge): a shot
+    # whose picture is identical but whose hints differ is still a change, or --accept-changed would drop it.
+    geo = ("x", "y", "w", "h")
+    for i, (a, b) in enumerate(zip(om["marks"], nm["marks"]), 1):
+        ra, rb = ({k: v for k, v in m.items() if k not in geo} for m in (a, b))
+        if ra != rb:
+            return "changed", f"mark {i} hints {ra or '{}'} → {rb or '{}'}"
+    extra = lambda m: {k: v for k, v in m.items() if k not in ("w", "h", "marks")}
+    if extra(om) != extra(nm):
+        return "changed", f"shot metadata {extra(om)} → {extra(nm)}"
     if (om["w"], om["h"]) != (nm["w"], nm["h"]):  # the crop would compare the same rectangle of different screens
         return "changed", f"viewport {om['w']}x{om['h']} → {nm['w']}x{nm['h']}"
     x, y, w, h = (int(v) for v in crop_window(om))

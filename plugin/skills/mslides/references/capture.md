@@ -73,9 +73,13 @@ and deleted when the REPL exits; the REPL refuses requests without it.
 - Throws if a mark's locator is not found, or if a mark is entirely outside the viewport after scrolling
   (both axes). A mark only partly visible is clamped with a warning — keep a slide's marks within one viewport.
 - Removes toasts matching `capture.toast_selector` unless `opts.keepToasts: true`. Pass it when a step points at the toast.
-- `opts.badges: [null, 'left', …]` sets a per-mark badge hint (or edit `badge` in the JSON later).
+- `opts.badges: [null, 'left', 'above', …]` sets a per-mark badge hint: `left`, `right`, `above` or `below`. Keep hints in
+  the step, not in a hand-edited `shots/*.json`: a replay rewrites that file from the step, and `diff_shots.py` reports
+  a differing hint as `changed`.
+- A mark touching the screenshot frame (a drawer header at the right edge) is drawn inside the picture at build time.
 
-`slide({...})` upserts the manifest entry with the same `shot`.
+`slide({...})` upserts the manifest entry with the same `shot`. A full `replay.mjs` does the same for every step
+and also puts `manifest.json` in step-file order (see 4b).
 
 ```js
 // steps/00-lib.js — helpers live on P so later steps reuse them
@@ -102,6 +106,13 @@ slide({ chapter: 'editor', task: 'Fill in and save the item', kicker: 'EDITOR ·
   tip: '"Notes" is optional.' });
 return 'ok';
 ```
+
+- **The steps are the source of wording and order.** A full `replay.mjs` upserts every `slide({...})` into
+  `manifest.json` (steps, tips, task, kicker…) and orders it the way the steps ran, so a slide captured out of order
+  while exploring lands where its step file puts it. It lists what changed and keeps the old file as
+  `manifest.json.bak`. Wording polished only in `manifest.json` is reverted — change the step too, or replay with
+  `--no-sync-manifest` for pictures only. Entries no step produces (hand-added) are kept after the others, with a
+  warning; `--only` runs upsert in place and never reorder.
 
 The demo in the plugin repo (`examples/demo/steps/`) is a complete, replayable set.
 
@@ -131,7 +142,7 @@ freshly reset test data in one go, so write each step from the start as if it wi
 | Adjacent boxes need a visible gap; never share an edge | touching boxes read as one, and the badge lands on the shared edge |
 | A grouped control (two linked selects) gets one box around the group | two boxes for one decision confuse the step count |
 | A box must enclose its text fully — make it taller rather than cut through a value | an outline through "40,000.00" hides the value |
-| `badge:"left"` when the placer keeps landing on text next to the box | badges on labels are unreadable |
+| A badge hint (`left`/`right`/`above`/`below`) when the placer keeps landing on text or between boxes; the build warns about an ambiguous spot | badges on labels are unreadable; one between two boxes reads as the neighbour's |
 | Mark the content area when the crop would be mostly empty — the crop tightens around marks | a small dialog floating in a blank picture |
 | Widen marks when the crop cuts a label or column | the crop is derived from the marks' bounding box |
 | Keep a slide's marks within one 16:9 window | the builder refuses marks that span more than one |
@@ -146,6 +157,9 @@ Preview before building: `$PY $S/scripts/overlay.py <ws> <shot>…` → `<ws>/pr
   then re-capture the whole flow on fresh data.
 - **Placeholder text in the wrong language**: craft a realistic value in the manual's language, logged in PROGRESS.md.
 - **Generic bars** (an empty "0 selected" bulk-action bar) — keep them below the marks so the crop drops them.
+- **Open menu hides the page:** while a dropdown/menu/modal is open the rest of the page is `aria-hidden`, so
+  `getByRole(...)` marks for elements outside it fail with "callout target not found". Use CSS/text locators for
+  those marks: `p.locator('button').filter({ hasText: 'Save' })`.
 - **Popover cut off:** widen the viewport first. If it is still clipped, the clip is app-side — mark differently
   and report it as a bug.
 

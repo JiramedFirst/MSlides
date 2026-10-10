@@ -12,11 +12,15 @@ needed several rounds; most blockers were invisible in the JSON and obvious on t
    - macOS renders through Keynote. Before the first export, `open -ga Keynote` and give it a few seconds.
 3. **Validate the package** if you have an OOXML validator (e.g. a pptx skill's `validate.py`). It catches broken
    XML and repair prompts, not visual faults: invisible text passes.
-4. **Render pages for review** (one PNG per slide into `<ws>/qa<N>/`):
+4. **Render pages for review** (one PNG per slide, ~200 dpi, into `<ws>/qa<N>/`) from the PDF built in step 2:
    ```bash
-   osascript $S/scripts/render.applescript <ws>/out/<out_name>-ALL.pptx <ws>/qa<N>          # macOS: Keynote
+   $PY $S/scripts/qa_render.py <ws>/manual.json <ws>/qa<N>            # pdftoppm -r 200 (poppler); --dpi N, --edition <code>
+   ```
+   Judging 1–4 px gaps and badge overlaps needs this resolution; Keynote's PNG export is fixed at 960×540 and
+   PowerPoint's at 1920×1080, so the direct exports are a fallback for a quick look only:
+   ```bash
+   osascript $S/scripts/render.applescript <ws>/out/<out_name>-ALL.pptx <ws>/qa<N>          # macOS: Keynote (960×540)
    powershell -NoProfile -ExecutionPolicy Bypass -File $S\scripts\render.ps1 <ws>\out\<out_name>-ALL.pptx <ws>\qa<N> png   # Windows: PowerPoint
-   mkdir -p <ws>/qa<N> && pdftoppm -r 90 -png <ws>/out/<out_name>-ALL.pdf <ws>/qa<N>/s       # elsewhere (poppler), from the PDF
    ```
    Review the ALL edition; role editions are subsets built by the same code.
 
@@ -61,7 +65,7 @@ Group by HIGH (wrong or misleading), MED (confusing), LOW (cosmetic). Do not lis
 | Class | What it looks like | Fix lane |
 |---|---|---|
 | Overlapping boxes | two buttons boxed edge-to-edge; badge on the shared edge | marks: inset/separate, leave a gap |
-| Badge on text / ambiguous badge | badge covers a label, or sits between two boxes | marks: `badge:"left"`; build: placer |
+| Badge on text / ambiguous badge | badge covers a label, or sits between two boxes | marks: `badge` hint (`left`/`right`/`above`/`below`); build: placer |
 | Step without box | step names a control nothing surrounds | marks: add a box, or move the sentence to the tip |
 | Two badges, one box | marks 2 and 3 on the same element | marks |
 | Cut popover | legend/tooltip clipped at the right | capture: wider viewport; if still clipped, app bug |
@@ -102,12 +106,17 @@ BADGE_DEBUG=<shot> $PY $S/scripts/manual.py <ws>/manual.json --role <code>
 ```
 
 prints, per mark, every candidate's cost and ink share. Use it when a badge keeps landing on text:
-- ink cannot tell a text label from UI chrome → set `"badge": "left"` on that mark in `shots/<shot>.json`;
-- the badge is ambiguous between two boxes → the boxes are too close; separate the marks.
+- ink cannot tell a text label from UI chrome → give that mark a badge hint: `left`, `right`, `above` or `below`
+  (`opts.badges` in the capture step — a hint typed into `shots/<shot>.json` is lost on the next replay);
+- the build prints `warning: <shot>: badge N is about as close to box M as to its own` when the chosen spot is
+  still ambiguous → add a hint that puts the badge on the far side from the neighbour, or separate the boxes.
 
 The debug build overwrites that edition's output — rebuild it afterwards.
 
 ## 6. Keynote trouble
+
+`Keynote cannot export while the screen is locked or asleep (… -1712)`: Keynote only answers while the display is
+unlocked and awake. Unlock the Mac, run `caffeinate -d` in another terminal for the length of the build, rebuild.
 
 - "Keynote did not open <deck>": Keynote may be showing a dialog (an import error, an open panel). Look at it —
   "invalid file format" means the PPTX itself is the problem; anything else, dismiss it and rebuild.

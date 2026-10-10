@@ -99,7 +99,14 @@ def render_pdf(pptx):
     pdf = pptx.with_suffix(".pdf")
     pdf.unlink(missing_ok=True)
     if R.has_keynote():
-        subprocess.run(["osascript", str(HERE / "render.applescript"), str(pptx.resolve()), str(pdf.resolve()), "pdf"], check=True)
+        r = subprocess.run(["osascript", str(HERE / "render.applescript"), str(pptx.resolve()), str(pdf.resolve()), "pdf"],
+                           capture_output=True, text=True)
+        if r.returncode:
+            err = (r.stderr or "").strip()
+            if "-1712" in err:  # AppleEvent timeout: Keynote is up but never answers while the display is locked/asleep
+                raise SystemExit("Keynote cannot export while the screen is locked or asleep (AppleEvent timeout, -1712) — "
+                                 "unlock the Mac and keep it awake (caffeinate -d), then rebuild")
+            raise SystemExit(f"Keynote export failed: {err or 'osascript exit ' + str(r.returncode)}")
     elif R.has_powerpoint():
         subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(HERE / "render.ps1"),
                         str(pptx.resolve()), str(pdf.resolve()), "pdf"], check=True)
@@ -136,10 +143,13 @@ def publish(cfg, ws, staged):
             shutil.rmtree(dst / f.name, ignore_errors=True)
             shutil.move(str(f), dst / f.name)
         print("archived previous decks →", dst)
-    # A deck at the top of out/ that this build did not produce belongs to a removed/renamed chapter: move it aside
-    # so out/ holds exactly the current editions, whatever the version.
+    # A deck at the top of out/ whose EDITION is no longer in manual.json belongs to a removed/renamed chapter: move
+    # it aside so out/ holds exactly the current editions, whatever the version. Judge by edition, not by file: a
+    # build without --pdf / --md produces no PDF / Markdown, but the editions still exist — those files stay.
     current = {f.name for f in staged.iterdir()}
-    stale = [f for f in editions(out) if f.name not in current]
+    live = set(edition_names(cfg, ["all"] + [c["code"] for c in cfg["chapters"]]))
+    stale = [f for f in editions(out) if f.stem not in live]
+    kept = sorted(f.name for f in editions(out) if f.stem in live and f.name not in current)
     if stale:
         gone = out / "archive" / "removed"
         gone.mkdir(parents=True, exist_ok=True)
@@ -151,6 +161,9 @@ def publish(cfg, ws, staged):
         shutil.move(str(f), out / f.name)
     staged.rmdir()
     mark.write_text(ver, encoding="utf-8")
+    if kept:
+        print(f"warning: kept from the previous build (this run did not re-export them — rebuild with --pdf / --md "
+              f"before using them, they may not match the new decks): {', '.join(kept)}", file=sys.stderr)
 
 
 if __name__ == "__main__":

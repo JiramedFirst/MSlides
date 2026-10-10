@@ -103,6 +103,8 @@ viewer-03", "swap these two slides", "split this slide in two", "add a row to th
    re-capture, so say so instead of faking it), on-screen text in quotes, tip ≤ ~120 chars. Wording about
    behaviour is checked against the app's code and messages, not invented.
 3. Rebuild (`manual.py --all`, plus `--pdf` where a renderer exists) and show the changed slide(s).
+   If the workspace has replayable `steps/`, make the same wording change in the step too: a full `replay.mjs`
+   rewrites `manifest.json` from the steps (`--no-sync-manifest` skips that).
 
 ## Refresh an existing manual (UI changed)
 
@@ -112,13 +114,16 @@ capture) + `shots/` (accepted pictures). A refresh re-takes pictures and keeps w
 1. **What changed:** `git log <captured_sha>..HEAD --oneline -- <code_paths>` in the app repo → affected chapters.
 2. **Fresh data:** reset the app's test data the way its README says, start it.
 3. **Replay:** `MANUAL_CONFIG=$WS/manual.json node $S/scripts/replay.mjs` → `shots-new/`. It stops at the first
-   step that no longer works — fix that step (the UI moved), reset, replay again.
+   step that no longer works — fix that step (the UI moved), reset, replay again. A successful full replay also
+   syncs `manifest.json` from the steps' `slide()` calls (wording and step-file order; old file kept as
+   `manifest.json.bak`; `--no-sync-manifest` for pictures only).
 4. **Diff:** `$PY $S/scripts/diff_shots.py $WS` → `refresh-report.md`: broken · changed · new · unchanged.
    Look at every changed slide's new shot; `--accept <shot…>` / `--accept-changed`.
    A changed mark count means the steps must be re-counted.
 5. **Wording:** `$PY $S/scripts/check_copy.py $WS/manual.json` lists quoted labels no longer in the app's
-   messages (`copy.messages` in manual.json) — fix those steps/tips in `manifest.json` (and re-read the code for
-   changed rules/tables).
+   messages (`copy.messages` in manual.json) — fix those steps/tips in the step files (the replay copies them into
+   `manifest.json`; with `--no-sync-manifest` edit `manifest.json` directly) and re-read the code for changed
+   rules/tables.
 6. **Release:** bump `version`, set `captured_at` / `captured_sha`, `manual.py --all --pdf` (the previous version
    is archived), QA the changed slides (qa.md §4), note the refresh in PROGRESS.md.
 
@@ -133,6 +138,8 @@ capture) + `shots/` (accepted pictures). A refresh re-takes pictures and keeps w
 | `scripts/inspect_template.py` | template facts (layouts, placeholders, colours), `--suggest` config block, `--render` preview |
 | `scripts/cap.mjs`, `scripts/repl.mjs` | Playwright session (configurable login, env-var passwords, identity check), `shot()` with marks, REPL that keeps pages alive |
 | `scripts/overlay.py` | preview a shot's marks before building |
+| `scripts/qa_render.py` | QA pages from the PDF at ~200 dpi (pdftoppm) |
+| `scripts/manifest.mjs` | manifest upsert/sync shared by `repl.mjs` and `replay.mjs` |
 | `scripts/replay.mjs`, `scripts/diff_shots.py`, `scripts/check_copy.py` | refresh: replay steps → shots-new, per-slide diff + accept, stale-label check |
 | `scripts/optimize_shots.py`, `scripts/slim_template.py` | shrink shots and a large template before keeping them |
 | `scripts/make_plain_template.py`, `templates/plain.pptx` · `dark.pptx` | the bundled unbranded 16:9 templates (light / dark) and their generator |

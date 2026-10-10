@@ -24,6 +24,19 @@ on run argv
 			delay 1
 		end try
 	end repeat
+	-- A locked or sleeping screen leaves Keynote answering nothing: every event then waits out the default 120 s
+	-- and fails with -1712. Long decks need more than 120 s to export, so raise the limit and translate the failure.
+	try
+		with timeout of 600 seconds
+			my exportDeck(src, dst, fname, stem, (count of argv) > 2)
+		end timeout
+	on error msg number n
+		if n is -1712 then error "Keynote cannot export while the screen is locked or asleep (AppleEvent timeout, -1712) — unlock the Mac and keep it awake (caffeinate -d), then retry" number n
+		error msg number n
+	end try
+end run
+
+on exportDeck(src, dst, fname, stem, asPdf)
 	tell application "Keynote"
 		-- Ids of documents already open: the one we want is the document that was NOT there before `open`.
 		-- (A name match is not enough — another open deck can share the name or its prefix.)
@@ -39,11 +52,11 @@ on run argv
 		end repeat
 		if d is missing value then error "Keynote did not open " & fname
 		delay 2
-		if (count of argv) > 2 then
+		if asPdf then
 			export d to dst as PDF
 		else
 			export d to dst as slide images with properties {image format:PNG, skipped slides:false}
 		end if
 		close d saving no
 	end tell
-end run
+end exportDeck
