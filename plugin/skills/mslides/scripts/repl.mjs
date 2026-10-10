@@ -7,20 +7,15 @@
 //   slide() — upsert a manifest.json entry by its `shot` name
 import http from 'http';
 import { randomBytes } from 'crypto';
-import { readFileSync, writeFileSync, existsSync, rmSync } from 'fs';
+import { writeFileSync, rmSync } from 'fs';
 import path from 'path';
 import * as cap from './cap.mjs';
+import { upsertSlide } from './manifest.mjs';
 
 const P = {};
 const MANIFEST = path.join(cap.WS, 'manifest.json');
 const aria = async (page, sel = 'main') => page.locator(sel).first().ariaSnapshot();
-const slide = (o) => {
-  const a = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : [];
-  const i = a.findIndex((x) => x.shot === o.shot);
-  if (i >= 0) a[i] = o; else a.push(o);
-  writeFileSync(MANIFEST, JSON.stringify(a, null, 2));
-  return a.length;
-};
+const slide = (o) => upsertSlide(MANIFEST, o);
 const AsyncFunction = (async () => {}).constructor;
 const PORT = Number(process.env.MANUAL_REPL_PORT ?? 9555);
 // This server runs arbitrary code with a logged-in browser in reach, so loopback alone is not enough: any local

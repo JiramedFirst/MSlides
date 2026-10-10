@@ -39,10 +39,21 @@ try:
     port = srv.server_address[1]
     urllib.request.urlopen(f"http://127.0.0.1:{port}/index.html").read()
 
+    # Replay writes the steps' slide() wording and order into manifest.json: scramble the copy first (swap two
+    # slides, change a step) and check below that the replay restores it.
+    manifest = WS / "manifest.json"
+    want_manifest = json.loads(manifest.read_text(encoding="utf-8"))
+    scrambled = json.loads(json.dumps(want_manifest))
+    scrambled[0]["steps"][0] = "STALE WORDING"
+    scrambled[0], scrambled[1] = scrambled[1], scrambled[0]
+    manifest.write_text(json.dumps(scrambled), encoding="utf-8")
+
     print(f"== replay (demo app on :{port})")
     run("node", S / "scripts/replay.mjs", env={**os.environ, "MANUAL_CONFIG": str(WS / "manual.json"),
                                                 "MANUAL_BASE_URL": f"http://127.0.0.1:{port}", "MANUAL_PW": "smoke-test"})
     (WS / "shots-new").rename(WS / "shots")
+    assert json.loads(manifest.read_text(encoding="utf-8")) == want_manifest, "replay did not restore manifest wording/order from the steps"
+    assert (WS / "manifest.json.bak").exists(), "replay did not keep manifest.json.bak"
 
     renderer = renderers.renderer()
     print("== build (pdf renderer:", renderer or "none", ")")
@@ -89,6 +100,8 @@ try:
 
     run(PY, S / "scripts/check_copy.py", WS / "manual.json")
     run(PY, ROOT / "tests/test_crop.py")
+    run(PY, ROOT / "tests/test_regressions.py")
+    run("node", ROOT / "tests/test_manifest.mjs")
     print("SMOKE OK")
 finally:
     shutil.rmtree(TMP, ignore_errors=True)

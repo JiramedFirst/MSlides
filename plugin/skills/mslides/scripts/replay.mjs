@@ -6,11 +6,15 @@
 // Replay assumes the app's test data was just reset: states only exist in order, and a step that expects
 // "a record that was sent back" only finds one if every earlier step ran on the same fresh data.
 //
-// slide() is a no-op here: manifest.json text was polished during QA and is the source of truth after the first
-// build — a replay must refresh pictures, never revert wording.
+// slide() records what each step says. After a FULL, successful replay the step files are the source of the
+// wording and the order: manifest.json is upserted from them (steps/tips/task/kicker…) and ordered the way the
+// steps produced the slides. Before overwriting, the changed slides are listed and the old file is kept as
+// manifest.json.bak. A wording fix made only in manifest.json is therefore reverted — fix the step too, or pass
+// --no-sync-manifest to refresh pictures only. A --only run upserts in place and never reorders.
 // The first failing step stops the run and is named: that is where the UI changed (renamed button, moved field).
 import { readdirSync, readFileSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import path from 'path';
+import { syncManifest } from './manifest.mjs';
 
 // Unconditional: an inherited MANUAL_SHOTS=shots would overwrite the accepted baseline before diff_shots.py runs.
 process.env.MANUAL_SHOTS = 'shots-new';
@@ -20,7 +24,7 @@ const args = process.argv.slice(2);
 // --only is for debugging one screen on an app that is ALREADY in the right state: each run starts a new process
 // with an empty P, so list the setup steps it needs too (e.g. --only 00-lib.js 10-list.js). There is no
 // "resume from step N": after a reset, step N only finds its state if every earlier step ran — replay them all.
-const only = args.includes('--only') ? args.slice(args.indexOf('--only') + 1) : null;
+const only = args.includes('--only') ? args.slice(args.indexOf('--only') + 1).filter((a) => !a.startsWith('--')) : null;
 
 // Only NN-*.js files are replayable steps; anything else in steps/ (or scratch/) is exploration and is skipped.
 // Numeric order, not string order: "100-…" must run after "20-…".
@@ -34,7 +38,9 @@ else { mkdirSync(cap.OUT, { recursive: true }); writeFileSync(path.join(cap.OUT,
 
 const P = {};
 const aria = async (page, sel = 'main') => page.locator(sel).first().ariaSnapshot();
-const slide = () => 0;
+const produced = [];
+const slide = (o) => produced.push(o);
+const syncOn = !args.includes('--no-sync-manifest');
 const AsyncFunction = (async () => {}).constructor;
 let failed = null;
 for (const f of files) {
@@ -51,5 +57,13 @@ for (const f of files) {
   }
 }
 await cap.done();
+if (syncOn && !failed && produced.length) {  // a failed run saw only some steps: leave the manifest alone
+  const MANIFEST = path.join(cap.WS, 'manifest.json');  // same name repl.mjs writes
+  const r = syncManifest(MANIFEST, produced, { full: !only });
+  for (const c of r.changes) console.log(`manifest ${c.kind === 'new' ? 'new    ' : 'updated'} ${c.shot}: ${c.keys.join(', ')}`);
+  if (r.moved.length) console.log(`manifest reordered to step order (${r.moved.length} slide(s) moved)`);
+  if (r.orphans.length) console.warn(`manifest: no step produced ${r.orphans.join(', ')} — kept after the replayed slides`);
+  console.log(r.wrote ? `manifest.json synced from the steps (previous version: ${path.basename(MANIFEST)}.bak)` : 'manifest.json already matches the steps');
+}
 console.log(failed ? `stopped at ${failed}` : `replayed ${files.length} steps → ${cap.OUT}`, '— next: diff_shots.py');
 process.exit(failed ? 1 : 0);

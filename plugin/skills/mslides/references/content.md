@@ -108,7 +108,9 @@ overflow the content area — split it into `… (1/2)`, `… (2/2)`.
 - `shot` names `shots/<shot>.png` + `.json`. Prefix with the chapter code and a sortable number (`editor-02-…`).
 - `task` = slide title (an imperative: what the user wants done). `kicker` = `ROLE · area`.
 - `tip` is optional; it also becomes the slide's speaker notes.
-- Entries are built in file order within each chapter — order the manifest like the user's workflow.
+- Entries are built in file order within each chapter — order the manifest like the user's workflow. With
+  replayable `steps/`, a full `replay.mjs` writes this file for you, in step-file order: order the step files like
+  the workflow.
 
 ## Writing rules
 
