@@ -36,6 +36,6 @@ body:
     attributes:
       label: Versions
       description: MSlides, `python3 --version`, `node -v`, OS, PDF renderer (Keynote / PowerPoint / LibreOffice)
-      placeholder: MSlides 1.1.0 · Python 3.12 · Node 22 · macOS 15 · Keynote
+      placeholder: MSlides 1.1.1 · Python 3.12 · Node 22 · macOS 15 · Keynote
     validations:
       required: true

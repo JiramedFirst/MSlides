@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.1 — unreleased
+## 1.1.1 — 2026-10-10
 
 Fixes from building two real Thai manuals (32 and 20 task slides, 5 and 15 QA rounds). Each has a regression test
 (`tests/test_regressions.py`, `tests/test_manifest.mjs`; the smoke test also checks the replay sync).
